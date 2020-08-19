@@ -159,7 +159,7 @@ def player_worker(
 
 
 def pi_worker(
-        loop, camera, output, video_track, quit_event, throttle_playback
+        loop, camera, output, video_track, quit_event
 ):
     camera.start_recording(output, 'h264', profile="baseline")
 
@@ -177,10 +177,13 @@ def pi_worker(
             break
 
         # read up to 1 second ahead
+        '''
         if throttle_playback:
             elapsed_time = time.time() - start_time
             if frame_time and frame_time > elapsed_time + 1:
                 time.sleep(0.1)
+        '''
+
 
         if isinstance(frame, VideoFrame) and video_track:
             if frame.pts is None:  # pragma: no cover
@@ -420,8 +423,8 @@ class PiPlayer:
         self.__video = PiStreamTrack(self, kind="video")
 
         # check whether we need to throttle playback
-        container_format = set(self.__container.format.name.split(","))
-        self._throttle_playback = not container_format.intersection(REAL_TIME_FORMATS)
+        #container_format = set(self.__container.format.name.split(","))
+        #self._throttle_playback = not container_format.intersection(REAL_TIME_FORMATS)
 
 
     @property
@@ -444,8 +447,7 @@ class PiPlayer:
                     self.__camera,
                     self.__output,
                     self.__video,
-                    self.__thread_quit,
-                    self._throttle_playback,
+                    self.__thread_quit
                 ),
             )
             self.__thread.start()
