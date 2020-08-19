@@ -461,12 +461,12 @@ class PiPlayer:
             self.__thread.join()
             self.__thread = None
 
-        if not self.__started and self.__container is not None:
-            self.__container.close()
-            self.__container = None
+        if not self.__started and self.__camera is not None:
+            self.__camera.close()
+            self.__camera = None
 
     def __log_debug(self, msg: str, *args) -> None:
-        logger.debug(f"player(%s) {msg}", self.__container.name, *args)
+        logger.debug(f"player(%s) {msg}", "PiCamera", *args)
 
 
 class MediaRecorderContext:
