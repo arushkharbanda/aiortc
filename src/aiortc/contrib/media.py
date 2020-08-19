@@ -186,15 +186,7 @@ def pi_worker(
 
 
         if isinstance(frame, VideoFrame) and video_track:
-            if frame.pts is None:  # pragma: no cover
-                logger.warning("Skipping video frame with no pts")
-                continue
-
             # video from a webcam doesn't start at pts 0, cancel out offset
-            if video_first_pts is None:
-                video_first_pts = frame.pts
-            frame.pts -= video_first_pts
-
             frame_time = frame.time
             try:
                 video_track._queue.put_nowait(frame)
