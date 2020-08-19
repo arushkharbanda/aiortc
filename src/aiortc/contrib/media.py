@@ -2,12 +2,15 @@ import asyncio
 import fractions
 import logging
 import threading
+from asyncio import QueueFull, QueueEmpty
 import time
+import io
+import numpy as np
 from typing import Optional, Set
+import picamera
 
 import av
 from av import AudioFrame, VideoFrame
-from asyncio import QueueFull
 
 from ..mediastreams import AUDIO_PTIME, MediaStreamError, MediaStreamTrack
 
@@ -81,7 +84,7 @@ class MediaBlackhole:
 
 
 def player_worker(
-    loop, container, streams, audio_track, video_track, quit_event, throttle_playback
+        loop, container, streams, audio_track, video_track, quit_event, throttle_playback
 ):
     audio_fifo = av.AudioFifo()
     audio_format_name = "s16"
@@ -116,9 +119,9 @@ def player_worker(
 
         if isinstance(frame, AudioFrame) and audio_track:
             if (
-                frame.format.name != audio_format_name
-                or frame.layout.name != audio_layout_name
-                or frame.sample_rate != audio_sample_rate
+                    frame.format.name != audio_format_name
+                    or frame.layout.name != audio_layout_name
+                    or frame.sample_rate != audio_sample_rate
             ):
                 frame.pts = None
                 frame = audio_resampler.resample(frame)
@@ -151,9 +154,51 @@ def player_worker(
             frame_time = frame.time
             try:
                 video_track._queue.put_nowait(frame)
-            except QueueFull:
-                pass
-            #asyncio.run_coroutine_threadsafe(video_track._queue.put(frame), loop)
+            except  QueueFull:
+                print(QueueFull)
+
+
+def pi_worker(
+        loop, camera, output, video_track, quit_event, throttle_playback
+):
+    camera.start_recording(output, 'h264', profile="baseline")
+
+    video_first_pts = None
+
+    frame_time = None
+    start_time = time.time()
+
+    while not quit_event.is_set():
+        try:
+            frame = VideoFrame.from_ndarray(output)
+        except (av.AVError, StopIteration):
+            if video_track:
+                asyncio.run_coroutine_threadsafe(video_track._queue.put(None), loop)
+            break
+
+        # read up to 1 second ahead
+        if throttle_playback:
+            elapsed_time = time.time() - start_time
+            if frame_time and frame_time > elapsed_time + 1:
+                time.sleep(0.1)
+
+        if isinstance(frame, VideoFrame) and video_track:
+            if frame.pts is None:  # pragma: no cover
+                logger.warning("Skipping video frame with no pts")
+                continue
+
+            # video from a webcam doesn't start at pts 0, cancel out offset
+            if video_first_pts is None:
+                video_first_pts = frame.pts
+            frame.pts -= video_first_pts
+
+            frame_time = frame.time
+            try:
+                video_track._queue.put_nowait(frame)
+            except  QueueFull:
+                print(QueueFull)
+
+
 
 
 class PlayerStreamTrack(MediaStreamTrack):
@@ -161,7 +206,7 @@ class PlayerStreamTrack(MediaStreamTrack):
         super().__init__()
         self.kind = kind
         self._player = player
-        self._queue = asyncio.Queue(maxsize=1)
+        self._queue = asyncio.Queue(maxsize=2)
         self._start = None
 
     async def recv(self):
@@ -170,6 +215,8 @@ class PlayerStreamTrack(MediaStreamTrack):
 
         self._player._start(self)
         frame = await self._queue.get()
+
+
         if frame is None:
             self.stop()
             raise MediaStreamError
@@ -177,9 +224,9 @@ class PlayerStreamTrack(MediaStreamTrack):
 
         # control playback rate
         if (
-            self._player is not None
-            and self._player._throttle_playback
-            and frame_time is not None
+                self._player is not None
+                and self._player._throttle_playback
+                and frame_time is not None
         ):
             if self._start is None:
                 self._start = time.time() - frame_time
@@ -194,6 +241,49 @@ class PlayerStreamTrack(MediaStreamTrack):
         if self._player is not None:
             self._player._stop(self)
             self._player = None
+
+
+class PiStreamTrack(MediaStreamTrack):
+    def __init__(self, player, kind):
+        super().__init__()
+        self.kind = kind
+        self._player = player
+        self._queue = asyncio.Queue(maxsize=2)
+        self._start = None
+
+    async def recv(self):
+        if self.readyState != "live":
+            raise MediaStreamError
+
+        self._player._start(self)
+        frame = await self._queue.get()
+
+
+        if frame is None:
+            self.stop()
+            raise MediaStreamError
+        frame_time = frame.time
+
+        # control playback rate
+        if (
+                self._player is not None
+                and self._player._throttle_playback
+                and frame_time is not None
+        ):
+            if self._start is None:
+                self._start = time.time() - frame_time
+            else:
+                wait = self._start + frame_time - time.time()
+                await asyncio.sleep(wait)
+
+        return frame
+
+    def stop(self):
+        super().stop()
+        if self._player is not None:
+            self._player._stop(self)
+            self._player = None
+
 
 
 class MediaPlayer:
@@ -276,6 +366,83 @@ class MediaPlayer:
                     self.__container,
                     self.__streams,
                     self.__audio,
+                    self.__video,
+                    self.__thread_quit,
+                    self._throttle_playback,
+                ),
+            )
+            self.__thread.start()
+
+    def _stop(self, track: PlayerStreamTrack) -> None:
+        self.__started.discard(track)
+
+        if not self.__started and self.__thread is not None:
+            self.__log_debug("Stopping worker thread")
+            self.__thread_quit.set()
+            self.__thread.join()
+            self.__thread = None
+
+        if not self.__started and self.__container is not None:
+            self.__container.close()
+            self.__container = None
+
+    def __log_debug(self, msg: str, *args) -> None:
+        logger.debug(f"player(%s) {msg}", self.__container.name, *args)
+
+
+class PiPlayer:
+    """
+    A media source that reads video from a picamera.
+
+    :param format: The format to use, defaults to autodect.
+    :param options: Additional options to pass to FFmpeg.
+    """
+
+    def __init__(self,format=None, framerate=30,width=640, height=480, vflip=False, hflip=False):
+        self.__camera=picamera.PiCamera()
+        self.__camera.framerate = framerate
+        self.__camera.resolution = (width, height)
+        self.__output = np.empty((height, width, 3), dtype=np.uint8)
+        self.__camera.vflip = vflip # flips image rightside up, as needed
+        self.__camera.hflip = hflip # flips image left-right, as needed
+
+
+        time.sleep(1) # camera warm-up time
+
+        self.__thread: Optional[threading.Thread] = None
+        self.__thread_quit: Optional[threading.Event] = None
+
+        # examine streams
+        self.__started: Set[PlayerStreamTrack] = set()
+        self.__streams = []
+        self.__video: Optional[PlayerStreamTrack] = None
+
+        self.__video = PiStreamTrack(self, kind="video")
+
+        # check whether we need to throttle playback
+        container_format = set(self.__container.format.name.split(","))
+        self._throttle_playback = not container_format.intersection(REAL_TIME_FORMATS)
+
+
+    @property
+    def video(self) -> MediaStreamTrack:
+        """
+        A :class:`aiortc.MediaStreamTrack` instance if the file contains video.
+        """
+        return self.__video
+
+    def _start(self, track: PlayerStreamTrack) -> None:
+        self.__started.add(track)
+        if self.__thread is None:
+            self.__log_debug("Starting worker thread")
+            self.__thread_quit = threading.Event()
+            self.__thread = threading.Thread(
+                name="media-player",
+                target=pi_worker,
+                args=(
+                    asyncio.get_event_loop(),
+                    self.__camera,
+                    self.__output,
                     self.__video,
                     self.__thread_quit,
                     self._throttle_playback,
