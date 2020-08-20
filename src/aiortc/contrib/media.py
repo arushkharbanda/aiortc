@@ -175,14 +175,15 @@ def pi_worker(
     start_time = time.time()
 
     while not quit_event.is_set():
-        try:
+        #try:
             #frame = VideoFrame.from_ndarray(output)
-            frame = output
+        frame = output
+        '''
         except (av.AVError, StopIteration):
             if video_track:
                 asyncio.run_coroutine_threadsafe(video_track._queue.put(None), loop)
             break
-
+        '''
         # read up to 1 second ahead
         '''
         if throttle_playback:
@@ -268,7 +269,7 @@ class PiStreamTrack(MediaStreamTrack):
         if frame is None:
             self.stop()
             raise MediaStreamError
-        frame_time = frame.time
+        frame_time = time.time()
 
         # control playback rate
         if (
