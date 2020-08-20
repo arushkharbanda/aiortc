@@ -12,6 +12,7 @@ from ..jitterbuffer import JitterFrame
 from ..mediastreams import VIDEO_TIME_BASE, convert_timebase
 from .base import Decoder, Encoder
 
+
 logger = logging.getLogger("codec.h264")
 
 MAX_FRAME_RATE = 30
@@ -394,34 +395,20 @@ class H264Packer(Encoder):
         return packetized_packages
 
     def _encode_frame(
-            self, frame: av, force_keyframe: bool
+            self, frame, force_keyframe: bool
     ) -> Iterator[bytes]:
         if self.codec and (
                 frame.width != self.codec.width or frame.height != self.codec.height
         ):
             self.codec = None
 
-        if self.codec is None:
-            self.codec = av.CodecContext.create("libx264", "w")
-            self.codec.width = frame.width
-            self.codec.height = frame.height
-            self.codec.pix_fmt = "yuv420p"
-            self.codec.time_base = fractions.Fraction(1, MAX_FRAME_RATE)
-            self.codec.options = {
-                "profile": "baseline",
-                "level": "31",
-                "tune": "zerolatency",
-
-            }
 
 
-        packages = self.codec.encode(frame)
-        yield from self._split_bitstream(b"".join(p.to_bytes() for p in packages))
+        yield from self._split_bitstream(frame)
 
     def encode(
-            self, frame: Frame, force_keyframe: bool = False
+            self, frame, force_keyframe: bool = False
     ) -> Tuple[List[bytes], int]:
-        assert isinstance(frame, av.VideoFrame)
         packages = self._encode_frame(frame, force_keyframe)
         timestamp = convert_timebase(frame.pts, frame.time_base, VIDEO_TIME_BASE)
         return self._packetize(packages), timestamp
