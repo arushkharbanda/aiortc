@@ -252,6 +252,7 @@ class RTCRtpSender:
             self.__encoder = get_encoder(codec)
         force_keyframe = self.__force_keyframe
         self.__force_keyframe = False
+
         return await self.__loop.run_in_executor(
             None, self.__encoder.encode, frame, force_keyframe
         )

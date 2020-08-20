@@ -170,7 +170,7 @@ def pi_worker(
 
     while not quit_event.is_set():
         try:
-            frame = VideoFrame.from_ndarray(output)
+            frame = output #VideoFrame.from_ndarray(output)
         except (av.AVError, StopIteration):
             if video_track:
                 asyncio.run_coroutine_threadsafe(video_track._queue.put(None), loop)
@@ -184,7 +184,7 @@ def pi_worker(
                 time.sleep(0.1)
         '''
 
-
+        '''
         if isinstance(frame, VideoFrame) and video_track:
             # video from a webcam doesn't start at pts 0, cancel out offset
             frame_time = frame.time
@@ -192,6 +192,12 @@ def pi_worker(
                 video_track._queue.put_nowait(frame)
             except  QueueFull:
                 print(QueueFull)
+        '''
+
+        try:
+            video_track._queue.put_nowait(frame)
+        except  QueueFull:
+            print(QueueFull)
 
 
 

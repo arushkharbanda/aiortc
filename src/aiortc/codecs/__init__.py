@@ -11,7 +11,7 @@ from ..rtcrtpparameters import (
 )
 from .base import Decoder, Encoder
 from .g711 import PcmaDecoder, PcmaEncoder, PcmuDecoder, PcmuEncoder
-from .h264 import H264Decoder, H264Encoder, h264_depayload
+from .h264 import H264Decoder, H264Encoder, h264_depayload, H264EncoderPreEncoded
 from .opus import OpusDecoder, OpusEncoder
 from .vpx import Vp8Decoder, Vp8Encoder, vp8_depayload
 
@@ -168,7 +168,7 @@ def get_encoder(codec: RTCRtpCodecParameters) -> Encoder:
     elif mimeType == "audio/pcmu":
         return PcmuEncoder()
     elif mimeType == "video/h264":
-        return H264Encoder()
+        return H264EncoderPreEncoded()
     elif mimeType == "video/vp8":
         return Vp8Encoder()
     else:
