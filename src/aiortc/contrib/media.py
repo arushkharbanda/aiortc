@@ -7,7 +7,7 @@ import time
 import io
 import numpy as np
 from typing import Optional, Set
-#import picamera
+
 
 import av
 from av import AudioFrame, VideoFrame
@@ -167,7 +167,7 @@ def player_worker(
 def pi_worker(
         loop, camera, output, video_track, quit_event
 ):
-    camera.start_recording(output, 'h264', profile="baseline")
+    camera.start_recording(output, format='h264', profile='baseline')
 
     video_first_pts = None
 
@@ -254,7 +254,7 @@ class PiStreamTrack(MediaStreamTrack):
         super().__init__()
         self.kind = kind
         self._player = player
-        self._queue = asyncio.Queue(maxsize=2)
+        self._queue = asyncio.Queue(maxsize=1)
         self._start = None
 
     async def recv(self):
@@ -396,6 +396,7 @@ class MediaPlayer:
 
 
 class PiPlayer:
+
     """
     A media source that reads video from a picamera.
 
@@ -404,12 +405,15 @@ class PiPlayer:
     """
 
     def __init__(self,format=None, framerate=30,width=640, height=480, vflip=False, hflip=False):
+        import picamera
         self.__camera=picamera.PiCamera()
         self.__camera.framerate = framerate
         self.__camera.resolution = (width, height)
         self.__output = np.empty((height, width, 3), dtype=np.uint8)
         self.__camera.vflip = vflip # flips image rightside up, as needed
         self.__camera.hflip = hflip # flips image left-right, as needed
+        self.__camera.awb_mode = 'off'
+        self.__camera.awb_gains = (1.4, 1.5)
 
 
         time.sleep(1) # camera warm-up time

@@ -254,6 +254,7 @@ class H264Encoder(Encoder):
                 "profile": "baseline",
                 "level": "31",
                 "tune": "zerolatency",
+                "preset":"ultrafast",
             }
 
         packages = self.codec.encode(frame)
@@ -269,7 +270,8 @@ class H264Encoder(Encoder):
 
 
 
-class H264Encoder(Encoder):
+class H264Packer(Encoder):
+
     def __init__(self) -> None:
         self.codec: Optional[av.CodecContext] = None
 
@@ -392,7 +394,7 @@ class H264Encoder(Encoder):
         return packetized_packages
 
     def _encode_frame(
-            self, frame, force_keyframe: bool
+            self, frame: av, force_keyframe: bool
     ) -> Iterator[bytes]:
         if self.codec and (
                 frame.width != self.codec.width or frame.height != self.codec.height
@@ -409,16 +411,17 @@ class H264Encoder(Encoder):
                 "profile": "baseline",
                 "level": "31",
                 "tune": "zerolatency",
+
             }
 
-        #packages = self.codec.encode(frame)
-        packages=[frame]
+
+        packages = self.codec.encode(frame)
         yield from self._split_bitstream(b"".join(p.to_bytes() for p in packages))
 
     def encode(
-            self, frame, force_keyframe: bool = False
+            self, frame: Frame, force_keyframe: bool = False
     ) -> Tuple[List[bytes], int]:
-        #assert isinstance(frame, av.VideoFrame)
+        assert isinstance(frame, av.VideoFrame)
         packages = self._encode_frame(frame, force_keyframe)
         timestamp = convert_timebase(frame.pts, frame.time_base, VIDEO_TIME_BASE)
         return self._packetize(packages), timestamp
