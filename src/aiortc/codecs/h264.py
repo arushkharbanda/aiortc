@@ -355,7 +355,7 @@ class H264Packer(Encoder):
         # translate from: https://github.com/aizvorski/h264bitstream/blob/master/h264_nal.c#L134
         i = 0
         while True:
-            print(str(buf.__sizeof__()) +" "+str(len(buf)))
+            print(str(buf) +" "+str(len(buf)))
             print(i)
             while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01) and (
                     buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0 or buf[i + 3] != 0x01

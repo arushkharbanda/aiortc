@@ -178,7 +178,7 @@ def pi_worker(
         #try:
             #frame = VideoFrame.from_ndarray(output)
         output.seek(0)
-        frame = output.read()
+        frame = bytes(output.read())
         '''
         except (av.AVError, StopIteration):
             if video_track:
