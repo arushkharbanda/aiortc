@@ -176,8 +176,8 @@ class RTCRtpSender:
             # make note of RTX payload type
             for codec in parameters.codecs:
                 if (
-                    is_rtx(codec)
-                    and codec.parameters["apt"] == parameters.codecs[0].payloadType
+                        is_rtx(codec)
+                        and codec.parameters["apt"] == parameters.codecs[0].payloadType
                 ):
                     self.__rtx_payload_type = codec.payloadType
                     break
@@ -252,7 +252,6 @@ class RTCRtpSender:
             self.__encoder = get_encoder(codec)
         force_keyframe = self.__force_keyframe
         self.__force_keyframe = False
-
         return await self.__loop.run_in_executor(
             None, self.__encoder.encode, frame, force_keyframe
         )
@@ -290,7 +289,7 @@ class RTCRtpSender:
         try:
             while True:
                 if not self.__track:
-                    await asyncio.sleep(0.02)
+                    #await asyncio.sleep(0.02)
                     continue
 
                 payloads, timestamp = await self._next_encoded_frame(codec)
@@ -308,15 +307,15 @@ class RTCRtpSender:
 
                     # set header extensions
                     packet.extensions.abs_send_time = (
-                        clock.current_ntp_time() >> 14
-                    ) & 0x00FFFFFF
+                                                              clock.current_ntp_time() >> 14
+                                                      ) & 0x00FFFFFF
                     packet.extensions.mid = self.__mid
 
                     # send packet
                     self.__log_debug("> %s", packet)
                     self.__rtp_history[
                         packet.sequence_number % RTP_HISTORY_SIZE
-                    ] = packet
+                        ] = packet
                     packet_bytes = packet.serialize(self.__rtp_header_extensions_map)
                     await self.transport._send_rtp(packet_bytes)
 

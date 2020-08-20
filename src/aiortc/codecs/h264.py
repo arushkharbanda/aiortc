@@ -159,7 +159,7 @@ class H264Encoder(Encoder):
 
     @staticmethod
     def _packetize_stap_a(
-        data: bytes, packages_iterator: Iterator[bytes]
+            data: bytes, packages_iterator: Iterator[bytes]
     ) -> Tuple[bytes, bytes]:
         counter = 0
         available_size = PACKET_MAX - STAP_A_HEADER_SIZE
@@ -198,7 +198,7 @@ class H264Encoder(Encoder):
         i = 0
         while True:
             while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01) and (
-                buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0 or buf[i + 3] != 0x01
+                    buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0 or buf[i + 3] != 0x01
             ):
                 i += 1  # skip leading zero
                 if i + 4 >= len(buf):
@@ -208,7 +208,7 @@ class H264Encoder(Encoder):
             i += 3
             nal_start = i
             while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0) and (
-                buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01
+                    buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01
             ):
                 i += 1
                 # FIXME: the next line fails when reading a nal that ends
@@ -237,10 +237,10 @@ class H264Encoder(Encoder):
         return packetized_packages
 
     def _encode_frame(
-        self, frame: av.VideoFrame, force_keyframe: bool
+            self, frame: av.VideoFrame, force_keyframe: bool
     ) -> Iterator[bytes]:
         if self.codec and (
-            frame.width != self.codec.width or frame.height != self.codec.height
+                frame.width != self.codec.width or frame.height != self.codec.height
         ):
             self.codec = None
 
@@ -260,7 +260,7 @@ class H264Encoder(Encoder):
         yield from self._split_bitstream(b"".join(p.to_bytes() for p in packages))
 
     def encode(
-        self, frame: Frame, force_keyframe: bool = False
+            self, frame: Frame, force_keyframe: bool = False
     ) -> Tuple[List[bytes], int]:
         assert isinstance(frame, av.VideoFrame)
         packages = self._encode_frame(frame, force_keyframe)
@@ -268,7 +268,8 @@ class H264Encoder(Encoder):
         return self._packetize(packages), timestamp
 
 
-class H264Packer(Encoder):
+
+class H264Encoder(Encoder):
     def __init__(self) -> None:
         self.codec: Optional[av.CodecContext] = None
 
@@ -391,7 +392,7 @@ class H264Packer(Encoder):
         return packetized_packages
 
     def _encode_frame(
-            self, frame: av.VideoFrame, force_keyframe: bool
+            self, frame, force_keyframe: bool
     ) -> Iterator[bytes]:
         if self.codec and (
                 frame.width != self.codec.width or frame.height != self.codec.height
@@ -410,17 +411,17 @@ class H264Packer(Encoder):
                 "tune": "zerolatency",
             }
 
-        packages = self.codec.encode(frame)
+        #packages = self.codec.encode(frame)
+        packages=[frame]
         yield from self._split_bitstream(b"".join(p.to_bytes() for p in packages))
 
     def encode(
-            self, frame: Frame, force_keyframe: bool = False
+            self, frame, force_keyframe: bool = False
     ) -> Tuple[List[bytes], int]:
-        assert isinstance(frame, av.VideoFrame)
+        #assert isinstance(frame, av.VideoFrame)
         packages = self._encode_frame(frame, force_keyframe)
         timestamp = convert_timebase(frame.pts, frame.time_base, VIDEO_TIME_BASE)
         return self._packetize(packages), timestamp
-
 
 
 def h264_depayload(payload: bytes) -> bytes:
