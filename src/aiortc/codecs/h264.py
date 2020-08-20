@@ -357,28 +357,29 @@ class H264Packer(Encoder):
         while True:
             print(str(len(buf)))
             print(i)
-            while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01) and (
-                    buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0 or buf[i + 3] != 0x01
-            ):
-                i += 1  # skip leading zero
-                if i + 4 >= len(buf):
-                    return
-            if buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01:
-                i += 1
-            i += 3
-            nal_start = i
-            while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0) and (
-                    buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01
-            ):
-                i += 1
-                # FIXME: the next line fails when reading a nal that ends
-                # exactly at the end of the data
-                if i + 3 >= len(buf):
-                    nal_end = len(buf)
-                    yield buf[nal_start:nal_end]
-                    return  # did not find nal end, stream ended first
-            nal_end = i
-            yield buf[nal_start:nal_end]
+            if(len(buf)>=1+3):
+                while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01) and (
+                        buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0 or buf[i + 3] != 0x01
+                ):
+                    i += 1  # skip leading zero
+                    if i + 4 >= len(buf):
+                        return
+                if buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01:
+                    i += 1
+                i += 3
+                nal_start = i
+                while (buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0) and (
+                        buf[i] != 0 or buf[i + 1] != 0 or buf[i + 2] != 0x01
+                ):
+                    i += 1
+                    # FIXME: the next line fails when reading a nal that ends
+                    # exactly at the end of the data
+                    if i + 3 >= len(buf):
+                        nal_end = len(buf)
+                        yield buf[nal_start:nal_end]
+                        return  # did not find nal end, stream ended first
+                nal_end = i
+                yield buf[nal_start:nal_end]
 
     @classmethod
     def _packetize(cls, packages: Iterator[bytes]) -> List[bytes]:
