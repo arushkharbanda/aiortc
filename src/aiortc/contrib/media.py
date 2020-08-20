@@ -412,7 +412,6 @@ class PiPlayer:
         self.__camera=picamera.PiCamera()
         self.__camera.framerate = framerate
         self.__camera.resolution = (width, height)
-        self.__output = io.BytesIO()
         self.__camera.vflip = vflip # flips image rightside up, as needed
         self.__camera.hflip = hflip # flips image left-right, as needed
         #self.__camera.awb_mode = 'off'
@@ -428,7 +427,7 @@ class PiPlayer:
         self.__started: Set[PlayerStreamTrack] = set()
         self.__streams = []
         self.__video: Optional[PlayerStreamTrack] = None
-
+        self.__output=io.BytesIO()
         self.__video = PiStreamTrack(self, kind="video")
 
         # check whether we need to throttle playback
