@@ -395,7 +395,7 @@ class H264Packer(Encoder):
         return packetized_packages
 
     def _encode_frame(
-            self, frame, force_keyframe: bool
+            self, frame:bytes, force_keyframe: bool
     ) -> Iterator[bytes]:
         if self.codec and (
                 frame.width != self.codec.width or frame.height != self.codec.height
@@ -407,7 +407,7 @@ class H264Packer(Encoder):
         yield from self._split_bitstream(frame)
 
     def encode(
-            self, frame, force_keyframe: bool = False
+            self, frame:bytes, force_keyframe: bool = False
     ) -> Tuple[List[bytes], int]:
         packages = self._encode_frame(frame, force_keyframe)
         timestamp = convert_timebase(0,fractions.Fraction(1, 90000) , VIDEO_TIME_BASE)
