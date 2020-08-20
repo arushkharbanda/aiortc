@@ -177,7 +177,7 @@ def pi_worker(
     while not quit_event.is_set():
         #try:
             #frame = VideoFrame.from_ndarray(output)
-        frame = output.getbuffer()
+        frame = output.seek(0).read()
         '''
         except (av.AVError, StopIteration):
             if video_track:
