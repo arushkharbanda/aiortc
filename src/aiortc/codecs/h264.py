@@ -410,7 +410,7 @@ class H264Packer(Encoder):
             self, frame, force_keyframe: bool = False
     ) -> Tuple[List[bytes], int]:
         packages = self._encode_frame(frame, force_keyframe)
-        timestamp = convert_timebase(frame.pts, frame.time_base, VIDEO_TIME_BASE)
+        timestamp = convert_timebase(0,fractions.Fraction(1, 90000) , VIDEO_TIME_BASE)
         return self._packetize(packages), timestamp
 
 

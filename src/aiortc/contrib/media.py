@@ -202,6 +202,7 @@ def pi_worker(
                 print(QueueFull)
         '''
 
+
         try:
             video_track._queue.put_nowait(frame)
         except  QueueFull:
@@ -413,8 +414,8 @@ class PiPlayer:
         self.__output = np.empty((height, width, 3), dtype=np.uint8)
         self.__camera.vflip = vflip # flips image rightside up, as needed
         self.__camera.hflip = hflip # flips image left-right, as needed
-        self.__camera.awb_mode = 'off'
-        self.__camera.awb_gains = (1.4, 1.5)
+        #self.__camera.awb_mode = 'off'
+        #self.__camera.awb_gains = (1.4, 1.5)
 
 
         time.sleep(1) # camera warm-up time
