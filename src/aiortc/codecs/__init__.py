@@ -11,7 +11,7 @@ from ..rtcrtpparameters import (
 )
 from .base import Decoder, Encoder
 from .g711 import PcmaDecoder, PcmaEncoder, PcmuDecoder, PcmuEncoder
-from .h264 import H264Decoder, H264Encoder, h264_depayload, H264EncoderPreEncoded
+from .h264 import H264Decoder, H264Encoder, h264_depayload
 from .opus import OpusDecoder, OpusEncoder
 from .vpx import Vp8Decoder, Vp8Encoder, vp8_depayload
 
