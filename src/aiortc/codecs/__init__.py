@@ -151,7 +151,7 @@ def get_decoder(codec: RTCRtpCodecParameters) -> Decoder:
     elif mimeType == "audio/pcmu":
         return PcmuDecoder()
     elif mimeType == "video/h264":
-        return H264Packer()
+        return H264Decoder()
     elif mimeType == "video/vp8":
         return Vp8Decoder()
     else:
@@ -168,7 +168,7 @@ def get_encoder(codec: RTCRtpCodecParameters) -> Encoder:
     elif mimeType == "audio/pcmu":
         return PcmuEncoder()
     elif mimeType == "video/h264":
-        return H264Encoder()
+        return H264Packer()
     elif mimeType == "video/vp8":
         return Vp8Encoder()
     else:
