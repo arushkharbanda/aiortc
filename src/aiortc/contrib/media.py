@@ -7,7 +7,7 @@ import time
 import io
 import numpy as np
 from typing import Optional, Set
-import picamera
+#import picamera
 
 import av
 from av import AudioFrame, VideoFrame
@@ -141,6 +141,7 @@ def player_worker(
                     )
                 else:
                     break
+        '''
         elif isinstance(frame, VideoFrame) and video_track:
             if frame.pts is None:  # pragma: no cover
                 logger.warning("Skipping video frame with no pts")
@@ -156,6 +157,11 @@ def player_worker(
                 video_track._queue.put_nowait(frame)
             except  QueueFull:
                 print(QueueFull)
+        '''
+        try:
+            video_track._queue.put_nowait(frame)
+        except  QueueFull:
+            print(QueueFull)
 
 
 def pi_worker(
@@ -170,7 +176,8 @@ def pi_worker(
 
     while not quit_event.is_set():
         try:
-            frame = output #VideoFrame.from_ndarray(output)
+            #frame = VideoFrame.from_ndarray(output)
+            frame = output
         except (av.AVError, StopIteration):
             if video_track:
                 asyncio.run_coroutine_threadsafe(video_track._queue.put(None), loop)
@@ -200,14 +207,12 @@ def pi_worker(
             print(QueueFull)
 
 
-
-
 class PlayerStreamTrack(MediaStreamTrack):
     def __init__(self, player, kind):
         super().__init__()
         self.kind = kind
         self._player = player
-        self._queue = asyncio.Queue(maxsize=2)
+        self._queue = asyncio.Queue(maxsize=1)
         self._start = None
 
     async def recv(self):
