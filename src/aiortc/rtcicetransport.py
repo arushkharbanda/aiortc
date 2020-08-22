@@ -279,8 +279,10 @@ class RTCIceTransport(AsyncIOEventEmitter):
         # FIXME: don't use private member!
         if not self._connection._remote_candidates_end:
             if candidate is None:
+                print("add_remote_candidate")
                 self._connection.add_remote_candidate(None)
             else:
+                print("add_remote_candidate")
                 self._connection.add_remote_candidate(candidate_to_aioice(candidate))
 
     def getRemoteCandidates(self) -> List[RTCIceCandidate]:

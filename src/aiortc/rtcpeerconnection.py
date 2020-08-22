@@ -153,8 +153,10 @@ def add_remote_candidates(
     iceTransport: RTCIceTransport, media: sdp.MediaDescription
 ) -> None:
     for candidate in media.ice_candidates:
+        print("iceTransport.addRemoteCandidate(candidate)")
         iceTransport.addRemoteCandidate(candidate)
     if media.ice_candidates_complete:
+        print("iceTransport.addRemoteCandidate(candidate)")
         iceTransport.addRemoteCandidate(None)
 
 
@@ -358,6 +360,7 @@ class RTCPeerConnection(AsyncIOEventEmitter):
             and not self.__sctp._bundled
         ):
             iceTransport = self.__sctp.transport.transport
+            print("iceTransport.addRemoteCandidate(candidate)")
             iceTransport.addRemoteCandidate(candidate)
 
     def addTrack(self, track: MediaStreamTrack) -> RTCRtpSender:
